@@ -44,3 +44,20 @@ class intermix(object):
 
         return data
 
+
+    def get_users(self, cluster_id=""):
+
+        params = {}
+        template = "%(cluster_type)s/%(cluster_id)s/users"
+        data = self.api_request(cluster_id=cluster_id, template=template, params=params)
+
+        return data["data"]
+
+
+    def get_groups(self, cluster_id=""):
+
+        params = {}
+        template = "%(cluster_type)s/%(cluster_id)s/groups"
+        data = self.api_request(cluster_id=cluster_id, template=template, params=params)
+
+        return data["data"]
