@@ -20,9 +20,6 @@ def gen_script(data="",filename="",username="",host="",port=""):
 # to running.  The psql client is avaliable for download here,
 # https://www.postgresql.org/download/.
 #
-# With the command line client installed this script can be run using the following command,
-#
-# $ bash vacuum_$cluster_id.sh
 #
 # You will be prompted for the administrator password
 
