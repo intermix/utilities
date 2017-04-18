@@ -42,7 +42,7 @@ Simply rename the file `settings_local.py.default` and edit the file accordingly
 The following utility will generate a bash script that can be executed to reclaim deleted space and update row statistics on all tables in your cluster.
 Only tables that have space to be reclaimed will be touched.
 
-The utility will first call the Intermix API to retrieve a list of tables whos statistics are > 10% stale,
+The utility will first call the Intermix API to retrieve a list of tables whose statistics are > 10% stale,
 and then generate the script and include all necessary information to log into your Redshift cluster. When you run the script, you
 will be prompted for your user password.
 
@@ -80,7 +80,7 @@ bash ./foo.sh
 
 ### User Analytics
 
-Will outpu a CSV to STDOUT that contains user statistics for the past 7 days.
+Will output a CSV to STDOUT that contains user statistics for the past 7 days.
  
 #### Usage
 
