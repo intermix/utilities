@@ -1,0 +1,10 @@
+# Rename this file to 'settings_local.py'
+
+API_TOKEN = ""  # get this from https://dashboard.intermix.io/dashboard/account#my-token
+
+# VACUUM Settings
+
+VACUUM_REDSHIFT_USERNAME = ""
+VACUUM_REDSHIFT_HOST = ""
+VACUUM_REDSHIFT_PORT = 5439
+VACUUM_CLUSTER_ID = ""  # get this from https://dashboard.intermix.io/api/clusters
