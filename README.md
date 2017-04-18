@@ -6,7 +6,7 @@ Licensed under the MIT License (the "License"). You may not use this file except
 
 https://opensource.org/licenses/MIT
 
-Intermix is an analytics platform that instruments cloud-based databases to improve performance, reduce costs, and eliminate downtime.
+Intermix is an analytics platform that instruments Amazon Redshift to improve performance, reduce costs, and eliminate downtime.
 Our SaaS product intelligently tunes databases in the cloud, provides deep analytics, recommendations, and predictions, so companies don't have
 to hire DBA experts, throw money at performance problems, or deal with slow queries.
 
