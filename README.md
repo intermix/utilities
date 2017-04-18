@@ -76,3 +76,28 @@ Then execute the bash script with
 ```
 bash ./foo.sh
 ```
+
+
+### User Analytics
+
+Will outpu a CSV to STDOUT that contains user statistics for the past 7 days.
+ 
+#### Usage
+
+```
+user_analytics.py
+
+Generates a CSV for per-user statistics including query counts, latency, memory usage, and more.
+
+<no optional arguments>
+
+```
+
+
+
+#### Example
+
+```
+python ./user_analytics.py
+```
+
