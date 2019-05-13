@@ -2,17 +2,23 @@ from intermix import intermix
 import settings
 import argparse
 
-def construct_cmd_string(schema_name="", table_name=""):
+def construct_cmd_string(schema_name="", table_name="", type="", val="",row_count="",sort_key=""):
 
-	executables = ["vacuum delete only", "analyze"]
-	out = []
-	for e in executables:
-		out.append("{} {}.{}".format(e, schema_name, table_name))
-	return out
+    if type == "ANALYZE":
+        executables = ["vacuum delete only", "analyze"]
+    elif type == "SORT" and sort_key != "INTERLEAVED":
+        executables = ["vacuum sort only"]
+    elif type == "SORT" and sort_key == "INTERLEAVED":
+        executables = ["vacuum reindex"]
+
+    out = []
+    for e in executables:
+        out.append("{} {}.{} /* value:{} rows:{} */".format(e, schema_name, table_name, val, row_count))
+    return out
 
 def gen_script(data="",filename="",username="",host="",port=""):
 
-	header = """
+    header = """
 #!/bin/bash
 # Intermix.io Vacuum Script
 #
@@ -38,67 +44,80 @@ ${{psqlcommand}} -d ${{logindb}} -U ${{adminuser}} -p ${{redshiftport}} -h ${{re
 
 """.format(username, port, host)
 
-	if filename:
-		f = open(filename, 'w')
-		f.write(header)
-		for db,cmds in data.iteritems():
-			f.write("\n\c {}\n".format(db))
-			for cmd in cmds:
-				f.write("{};\n".format(cmd))
-		f.close()
-	else:
-		print "{}\n".format(header)
-		for db, cmds in data.iteritems():
-			print "\n\c {}\n".format(db)
-			for cmd in cmds:
-				print "{};".format(cmd)
+    if filename:
+        f = open(filename, 'w')
+        f.write(header)
+        for db,cmds in data.iteritems():
+            f.write("\n\c {}\n".format(db))
+            for cmd in cmds:
+                f.write("{};\n".format(cmd))
+        f.close()
+    else:
+        print "{}\n".format(header)
+        for db, cmds in data.iteritems():
+            print "\n\c {}\n".format(db)
+            for cmd in cmds:
+                print "{};".format(cmd)
 
 
 def main():
 
-	im = intermix(settings.API_TOKEN)
+    im = intermix(settings.API_TOKEN)
 
-	CLUSTER_ID = settings.CLUSTER_ID
-	USERNAME = settings.VACUUM_REDSHIFT_USERNAME
-	REDSHIFT_HOST = settings.VACUUM_REDSHIFT_HOST
-	REDSHIFT_PORT = settings.VACUUM_REDSHIFT_PORT
+    CLUSTER_ID = settings.CLUSTER_ID
+    USERNAME = settings.VACUUM_REDSHIFT_USERNAME
+    REDSHIFT_HOST = settings.VACUUM_REDSHIFT_HOST
+    REDSHIFT_PORT = settings.VACUUM_REDSHIFT_PORT
 
-	template_table_info = "%(cluster_type)s/%(cluster_id)s/tables"
+    template_table_info = "%(cluster_type)s/%(cluster_id)s/tables"
 
-	params = {
-		"fields": "table_id,table_name,schema_id,schema_name,db_id,db_name,stats_pct_off"
-		}
+    params = {
+        "fields": "table_id,table_name,schema_id,schema_name,db_id,db_name,stats_pct_off,size_pct_unsorted,row_count,sort_key"
+        }
 
-	data = im.api_request(cluster_id=CLUSTER_ID, template=template_table_info, params=params)
+    data = im.api_request(cluster_id=CLUSTER_ID, template=template_table_info, params=params)
 
-	cmds_to_run = {}
+    cmds_to_run = {}
 
-	parser = argparse.ArgumentParser(description='Build Vacuum script')
-	parser.add_argument('-o', '--output', type=str, required=True, help='Enter a filename or "STDOUT"')
+    parser = argparse.ArgumentParser(description='Build Vacuum script')
+    parser.add_argument('-o', '--output', type=str, required=True, help='Enter a filename or "STDOUT" to send to standard out')
+    parser.add_argument('-t', '--type', type=str, required=True, help='Enter SORT to output a script for sorting tables, or ANALYZE for a script to vacuum delete and analyze tables.')
 
-	options = parser.parse_args()
+    options = parser.parse_args()
 
-	if options.output == "STDOUT":
-		OUTPUT_FILENAME = None
-	else:
-		OUTPUT_FILENAME = options.output
+    if options.output == "STDOUT":
+        OUTPUT_FILENAME = None
+    else:
+        OUTPUT_FILENAME = options.output
 
-	for d in data["data"]:
+    if options.type == "ANALYZE":
+        metric = "stats_pct_off"
+        threshold = 10
+    elif options.type == "SORT":
+        metric = "size_pct_unsorted"
+        threshold = 10
+    else:
+        print "Type should be one of 'SORT' or 'ANALYZE', exiting..."
+        exit(0)
 
-		stats_off_pct = d["stats_pct_off"]
-		schema_name = d["schema_name"]
-		table_name = d["table_name"]
-		db_name = d["db_name"]
+    for d in sorted(data["data"], key=lambda foo: foo[metric], reverse=True):
+        val = d[metric]
+        schema_name = d["schema_name"]
+        table_name = d["table_name"]
+        db_name = d["db_name"]
+        row_count = d["row_count"]
+        sort_key = d["sort_key"]
 
-		if not schema_name == "pg_internal" and (stats_off_pct > 10):
+        if not schema_name == "pg_internal" and (val > threshold):
+            try:
+                cmds_to_run[db_name] += construct_cmd_string(schema_name,table_name,type=options.type,
+                                                            val=val,row_count=row_count,sort_key=sort_key)
+            except:
+                cmds_to_run[db_name] = construct_cmd_string(schema_name, table_name,type=options.type,
+                                                            val=val, row_count=row_count,sort_key=sort_key)
 
-			try:
-				cmds_to_run[db_name] += construct_cmd_string(schema_name,table_name)
-			except:
-				cmds_to_run[db_name] = construct_cmd_string(schema_name, table_name)
-
-	gen_script(data=cmds_to_run, filename=OUTPUT_FILENAME, username=USERNAME,
-				host=REDSHIFT_HOST, port=REDSHIFT_PORT)
+    gen_script(data=cmds_to_run, filename=OUTPUT_FILENAME, username=USERNAME,
+                host=REDSHIFT_HOST, port=REDSHIFT_PORT)
 
 
 if __name__ == "__main__":
