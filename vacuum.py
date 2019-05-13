@@ -98,8 +98,7 @@ def main():
         print "Type should be one of 'SORT' or 'ANALYZE', exiting..."
         exit(0)
 
-    for d in data["data"]:
-
+    for d in sorted(data["data"], key=lambda foo: foo['row_count'], reverse=True):
         val = d[metric]
         schema_name = d["schema_name"]
         table_name = d["table_name"]
