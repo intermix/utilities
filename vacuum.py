@@ -2,7 +2,7 @@ from intermix import intermix
 import settings
 import argparse
 
-def construct_cmd_string(schema_name="", table_name="", type=""):
+def construct_cmd_string(schema_name="", table_name="", type="", val="",row_count=""):
 
     if type == "ANALYZE":
         executables = ["vacuum delete only", "analyze"]
@@ -11,7 +11,7 @@ def construct_cmd_string(schema_name="", table_name="", type=""):
 
     out = []
     for e in executables:
-        out.append("{} {}.{}".format(e, schema_name, table_name))
+        out.append("{} {}.{} -- value:{} rows:{}".format(e, schema_name, table_name, val, row_count))
     return out
 
 def gen_script(data="",filename="",username="",host="",port=""):
@@ -70,7 +70,7 @@ def main():
     template_table_info = "%(cluster_type)s/%(cluster_id)s/tables"
 
     params = {
-        "fields": "table_id,table_name,schema_id,schema_name,db_id,db_name,stats_pct_off,size_pct_unsorted"
+        "fields": "table_id,table_name,schema_id,schema_name,db_id,db_name,stats_pct_off,size_pct_unsorted,row_count"
         }
 
     data = im.api_request(cluster_id=CLUSTER_ID, template=template_table_info, params=params)
@@ -104,12 +104,15 @@ def main():
         schema_name = d["schema_name"]
         table_name = d["table_name"]
         db_name = d["db_name"]
+        row_count = d["row_count"]
 
         if not schema_name == "pg_internal" and (val > threshold):
             try:
-                cmds_to_run[db_name] += construct_cmd_string(schema_name,table_name,type=options.type)
+                cmds_to_run[db_name] += construct_cmd_string(schema_name,table_name,type=options.type,
+                                                            val=val,row_count=row_count)
             except:
-                cmds_to_run[db_name] = construct_cmd_string(schema_name, table_name,type=options.type)
+                cmds_to_run[db_name] = construct_cmd_string(schema_name, table_name,type=options.type,
+                                                            val=val, row_count=row_count)
 
     gen_script(data=cmds_to_run, filename=OUTPUT_FILENAME, username=USERNAME,
                 host=REDSHIFT_HOST, port=REDSHIFT_PORT)
