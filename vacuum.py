@@ -2,12 +2,14 @@ from intermix import intermix
 import settings
 import argparse
 
-def construct_cmd_string(schema_name="", table_name="", type="", val="",row_count=""):
+def construct_cmd_string(schema_name="", table_name="", type="", val="",row_count="",sort_key=""):
 
     if type == "ANALYZE":
         executables = ["vacuum delete only", "analyze"]
-    elif type == "SORT":
+    elif type == "SORT" and sort_key != "INTERLEAVED":
         executables = ["vacuum sort only"]
+    elif type == "SORT" and sort_key == "INTERLEAVED":
+        executables = ["vacuum reindex"]
 
     out = []
     for e in executables:
@@ -70,7 +72,7 @@ def main():
     template_table_info = "%(cluster_type)s/%(cluster_id)s/tables"
 
     params = {
-        "fields": "table_id,table_name,schema_id,schema_name,db_id,db_name,stats_pct_off,size_pct_unsorted,row_count"
+        "fields": "table_id,table_name,schema_id,schema_name,db_id,db_name,stats_pct_off,size_pct_unsorted,row_count,sort_key"
         }
 
     data = im.api_request(cluster_id=CLUSTER_ID, template=template_table_info, params=params)
@@ -104,14 +106,15 @@ def main():
         table_name = d["table_name"]
         db_name = d["db_name"]
         row_count = d["row_count"]
+        sort_key = d["sort_key"]
 
         if not schema_name == "pg_internal" and (val > threshold):
             try:
                 cmds_to_run[db_name] += construct_cmd_string(schema_name,table_name,type=options.type,
-                                                            val=val,row_count=row_count)
+                                                            val=val,row_count=row_count,sort_key=sort_key)
             except:
                 cmds_to_run[db_name] = construct_cmd_string(schema_name, table_name,type=options.type,
-                                                            val=val, row_count=row_count)
+                                                            val=val, row_count=row_count,sort_key=sort_key)
 
     gen_script(data=cmds_to_run, filename=OUTPUT_FILENAME, username=USERNAME,
                 host=REDSHIFT_HOST, port=REDSHIFT_PORT)
