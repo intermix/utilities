@@ -13,7 +13,7 @@ def construct_cmd_string(schema_name="", table_name="", type="", val="",row_coun
 
     out = []
     for e in executables:
-        out.append("{} {}.{} -- value:{} rows:{}".format(e, schema_name, table_name, val, row_count))
+        out.append("{} {}.{} /* value:{} rows:{} */".format(e, schema_name, table_name, val, row_count))
     return out
 
 def gen_script(data="",filename="",username="",host="",port=""):
@@ -81,7 +81,7 @@ def main():
 
     parser = argparse.ArgumentParser(description='Build Vacuum script')
     parser.add_argument('-o', '--output', type=str, required=True, help='Enter a filename or "STDOUT" to send to standard out')
-    parser.add_argument('-t', '--type', type=str, required=True, help='Enter SORT to output a script for sorting table, or ANALYZE for a script to vacuum delete and analyze tables.')
+    parser.add_argument('-t', '--type', type=str, required=True, help='Enter SORT to output a script for sorting tables, or ANALYZE for a script to vacuum delete and analyze tables.')
 
     options = parser.parse_args()
 
