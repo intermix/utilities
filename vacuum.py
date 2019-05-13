@@ -2,9 +2,13 @@ from intermix import intermix
 import settings
 import argparse
 
-def construct_cmd_string(schema_name="", table_name=""):
+def construct_cmd_string(schema_name="", table_name="", type=""):
 
-    executables = ["vacuum delete only", "analyze"]
+    if type == "ANALYZE":
+        executables = ["vacuum delete only", "analyze"]
+    elif type == "SORT":
+        executables = ["vacuum sort only"]
+
     out = []
     for e in executables:
         out.append("{} {}.{}".format(e, schema_name, table_name))
@@ -66,7 +70,7 @@ def main():
     template_table_info = "%(cluster_type)s/%(cluster_id)s/tables"
 
     params = {
-        "fields": "table_id,table_name,schema_id,schema_name,db_id,db_name,stats_pct_off"
+        "fields": "table_id,table_name,schema_id,schema_name,db_id,db_name,stats_pct_off,size_pct_unsorted"
         }
 
     data = im.api_request(cluster_id=CLUSTER_ID, template=template_table_info, params=params)
@@ -74,7 +78,8 @@ def main():
     cmds_to_run = {}
 
     parser = argparse.ArgumentParser(description='Build Vacuum script')
-    parser.add_argument('-o', '--output', type=str, required=True, help='Enter a filename or "STDOUT"')
+    parser.add_argument('-o', '--output', type=str, required=True, help='Enter a filename or "STDOUT" to send to standard out')
+    parser.add_argument('-t', '--type', type=str, required=True, help='Enter SORT to output a script for sorting table, or ANALYZE for a script to vacuum delete and analyze tables.')
 
     options = parser.parse_args()
 
@@ -83,19 +88,28 @@ def main():
     else:
         OUTPUT_FILENAME = options.output
 
+    if options.type == "ANALYZE":
+        metric = "stats_pct_off"
+        threshold = 10
+    elif options.type == "SORT":
+        metric = "size_pct_unsorted"
+        threshold = 10
+    else:
+        print "Type should be one of 'SORT' or 'ANALYZE', exiting..."
+        exit(0)
+
     for d in data["data"]:
 
-        stats_off_pct = d["stats_pct_off"]
+        val = d[metric]
         schema_name = d["schema_name"]
         table_name = d["table_name"]
         db_name = d["db_name"]
 
-        if not schema_name == "pg_internal" and (stats_off_pct > 10):
-
+        if not schema_name == "pg_internal" and (val > threshold):
             try:
-                cmds_to_run[db_name] += construct_cmd_string(schema_name,table_name)
+                cmds_to_run[db_name] += construct_cmd_string(schema_name,table_name,type=options.type)
             except:
-                cmds_to_run[db_name] = construct_cmd_string(schema_name, table_name)
+                cmds_to_run[db_name] = construct_cmd_string(schema_name, table_name,type=options.type)
 
     gen_script(data=cmds_to_run, filename=OUTPUT_FILENAME, username=USERNAME,
                 host=REDSHIFT_HOST, port=REDSHIFT_PORT)
