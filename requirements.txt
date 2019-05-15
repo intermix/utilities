@@ -1,4 +1,5 @@
 appdirs==1.4.3
+cryptography==2.1.4
 packaging==16.8
 pip==9.0.1
 pyparsing==2.2.0
