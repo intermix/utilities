@@ -30,7 +30,10 @@ class intermix(object):
         try:
 
             url = "%s/%s?%s" % (self.__BASE_URL__, endpoint_url, param_url)
-            r = requests.post(url, headers={'Authorization': 'Token %s' % (self.__API_TOKEN__)})
+            try:
+                r = requests.post(url, headers={'Authorization': 'Token %s' % (self.__API_TOKEN__)})
+            except:
+                r = requests.post(url, headers={'Authorization': 'Token %s' % (self.__API_TOKEN__)}, verify=False)
 
             if r.status_code != 200:
                 logging.critical("API request to %s failed %s", url, str(r))
