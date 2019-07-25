@@ -2,7 +2,7 @@ appdirs==1.4.3
 cryptography>=2.3
 packaging==16.8
 pip==19.1.1
-pyparsing==2.2.0
+pyparsing==2.4.1.1
 requests==2.21.0
 requests[security]==2.21.0
 setuptools==34.4.1
