@@ -1,0 +1,16 @@
+Create an Intermix User
+=======================
+
+The easiest way to create an intermix user for your redshift cluster is to use the script `new-intermix-user.sh`. This script uses [aws-cli](http://aws.amazon.com/cli/) to call `describe-clusters` to get the endpoint and to call `get-cluster-credentials` to get some temporary IAM credentials. It also generates a new 32 character password for the redshift user you're creating. It then creates a new user with unrestricted syslog access and access to select all `pg_catalog` tables.
+
+The script is called by:
+
+```
+    $ ./new-intermix-user.sh <redshift cluster-id> <redshift superuser> <new intermix username>
+```
+
+If you prefer to connect to redshift manually, you can modify the `intermix_grant.sql` file to change the password and then execute it directly with:
+
+```
+    $ psql <options> -f intermix_grant.sql
+```
