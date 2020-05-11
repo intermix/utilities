@@ -1,4 +1,4 @@
-appdirs==1.4.3
+appdirs==1.4.4
 cryptography>=2.3
 packaging==16.8
 pip==19.1.1
